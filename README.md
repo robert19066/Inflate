@@ -1,13 +1,24 @@
 
-## Project Overview
+# Project Overview
 
 Inflate is a Python-based compression and archival utility that supports two compression methods:
-- **ACS (Archive Compression System)**: Local compression using 7z format with .acs extension
-- **CBAC (Cloud-Based Archive Compression)**: Cloud-enabled compression using Dawnbond(Supabase abstraction layer made by me) for remote storage
+- **ACS (Abstract Compression System)**: Local compression using 7z format with .acs extension.
+- **CBAC (Cloud-Based Abstract Compression)**: Cloud-enabled compression using Dawnbond(Supabase abstraction layer made by me) for remote storage
 
 The system creates file maps and content files, compresses them using py7zr (7-Zip), and optionally uploads to cloud storage with retrieval codes.
 
 ## Architecture
+
+# Inner works
+
+## How ACS Works
+
+ACS(or Abstract Compression System) generates 2 blueprints of the selected folder: filemap.txt(map of all files) and filecntt.txt(file contents). Then the 2 files get packed into an .acs arhive. ACS is 3% faster than ZIP and 53% smaller than ZIP(tested on the latest CURL build)
+
+## How CBAC Works
+
+CBAC(or Cloud Based Abstract Compression) uses ACS to create an arhive,and then it stores it using Dawnbond,an supabase abstraction.You can purge,upload and take down from CBAC.  
+
 
 ### Core Components
 

@@ -2,8 +2,9 @@ import os
 from pathlib import Path
 import py7zr
 
+import random
 
-def create_acs_archive(source_folder, output_name="compressed.acs"):
+def create_acs_archive(source_folder):
     filemap_path = "filemap.txt"
     filecntt_path = "filecntt.txt"
 
@@ -20,7 +21,10 @@ def create_acs_archive(source_folder, output_name="compressed.acs"):
                     content = f.read()
                     fcntt.write(f"--- {rel_path} ---\n{content}\n\n")
 
-    # Step 2: Create .7z archive and rename to .acs
+    # Step 2: Create .7z archive and rename to .acs with random suffix
+    random_id = str(random.randint(100000000, 999999999))
+    output_name = f"compressed_{random_id}.acs"
+
     with py7zr.SevenZipFile("temp.7z", 'w') as archive:
         archive.write(filemap_path)
         archive.write(filecntt_path)
@@ -32,6 +36,8 @@ def create_acs_archive(source_folder, output_name="compressed.acs"):
     os.remove(filecntt_path)
 
     print(f"ACS archive created with 7z compression: {output_name}")
+    return output_name  # Return the actual filename
+
 
 
                     

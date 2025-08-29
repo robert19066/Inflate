@@ -1,34 +1,38 @@
 import os
 from pathlib import Path
-
-class Compressor:
-    def create_filemap(self, folder_path, filemap_path):
-        folder_path = Path(folder_path)
-        with open(filemap_path, 'w', encoding='utf-8') as f:
-            for root, dirs, files in os.walk(folder_path):
-                rel_root = os.path.relpath(root, folder_path)
-                depth = 0 if rel_root == "." else rel_root.count(os.sep) + 1
-                indent = "    " * depth
-                f.write(f"{indent}{rel_root}/\n")
-                for filename in files:
-                    f.write(f"{indent}    {filename}\n")
+import py7zr
 
 
-    def create_filecntt(self, folder_path, filecntt_path):
-        """Dump all file contents into filecntt_path."""
-        folder_path = Path(folder_path)
-        with open(filecntt_path, 'w', encoding='utf-8') as f:
-            for root, _, files in os.walk(folder_path):
-                for filename in files:
-                    file_path = Path(root) / filename
-                    rel_path = os.path.relpath(file_path, folder_path)
-                    f.write(f"[{rel_path}]\n")
-                    try:
-                        with open(file_path, 'r', encoding='utf-8') as content_file:
-                            f.write(content_file.read())
-                    except UnicodeDecodeError:
-                        f.write("<BINARY FILE>")
-                    f.write("\n\n")
+def create_acs_archive(source_folder, output_name="compressed.acs"):
+    filemap_path = "filemap.txt"
+    filecntt_path = "filecntt.txt"
+
+    # Step 1: Generate filemap and filecntt
+    with open(filemap_path, "w") as fmap, open(filecntt_path, "w") as fcntt:
+        for root, dirs, files in os.walk(source_folder):
+            for file in files:
+                full_path = os.path.join(root, file)
+                rel_path = os.path.relpath(full_path, source_folder)
+
+                fmap.write(f"{rel_path}\n")
+
+                with open(full_path, "r", errors="ignore") as f:
+                    content = f.read()
+                    fcntt.write(f"--- {rel_path} ---\n{content}\n\n")
+
+    # Step 2: Create .7z archive and rename to .acs
+    with py7zr.SevenZipFile("temp.7z", 'w') as archive:
+        archive.write(filemap_path)
+        archive.write(filecntt_path)
+
+    os.rename("temp.7z", output_name)
+
+    # Step 3: Clean up
+    os.remove(filemap_path)
+    os.remove(filecntt_path)
+
+    print(f"ACS archive created with 7z compression: {output_name}")
+
 
                     
 class Decompressor:

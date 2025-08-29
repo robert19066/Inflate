@@ -1,34 +1,37 @@
-from acsmain import Compressor, Decompressor
+from acsmain import create_acs_archive, Decompressor
 import sys
 
-if len(sys.argv) >= 3 and sys.argv[1] == "--compress":
-    folder_path = sys.argv[2]
-    try:
-        comp = Compressor()
-        print("Creating filemap...")
-        comp.create_filemap(folder_path, "project.filemap")
-        print("Filemap done.")
 
-        print("Creating filecntt...")
-        comp.create_filecntt(folder_path, "project.filecntt")
-        print("File content dump done.")
-    except Exception as e:
-        print(f"An error occurred: {e}")
+method = sys.argv[2]
+if sys.argv[1] == "--method":
+    print(f"Selected method: {method}")
 
-elif len(sys.argv) >= 5 and sys.argv[1] == "--decompress":
-    filemap_path = sys.argv[2]
-    filecntt_path = sys.argv[3]
-    output_path = sys.argv[4]
-    try:
-        decomp = Decompressor()
-        print("Restoring files...")
-        decomp.restore(filecntt_path, filemap_path, output_path)
-        print("Restoration done.")
-    except Exception as e:
-        print(f"An error occurred: {e}")
+    if method == "acs":
+        if len(sys.argv) >= 4 and sys.argv[3] == "--compress":
+            folder_path = sys.argv[4]
+            try:
+                print("Creating ACS archive...")
+                create_acs_archive(folder_path)
+            except Exception as e:
+                print(f"An error occurred: {e}")
 
+        elif len(sys.argv) >= 6 and sys.argv[3] == "--decompress":
+            filemap_path = sys.argv[4]
+            filecntt_path = sys.argv[5]
+            output_path = sys.argv[6]
+            try:
+                decomp = Decompressor()
+                print("Restoring files...")
+                decomp.restore(filecntt_path, filemap_path, output_path)
+                print("Restoration done.")
+            except Exception as e:
+                print(f"An error occurred: {e}")
+
+        else:
+            print("Usage:")
+            print("  python inflate.py --method acs --compress <folder_path>")
+            print("  python inflate.py --method acs --decompress <filemap_path> <filecntt_path> <output_path>")
+    elif method == "cbac":
+        print("Sorry but the Cloud Based Abstract Compression method is yet not available.")
 else:
-    print("Usage:")
-    print("  python inflate.py --compress <folder_path>")
-    print("  python inflate.py --decompress <filemap_path> <filecntt_path> <output_path>")
-
+    print("Invalid method specified.")

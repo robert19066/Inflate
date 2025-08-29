@@ -11,6 +11,7 @@ Usage:
   python inflate.py --method cbac --compress   <folder_path>
   python inflate.py --method cbac --decompress <retrieval_code> [output_path]
   python inflate.py --method cbac --purge      <retrieval_code>
+  python inflate.py --method cbac --diagnose   <retrieval_code>
 """
 
 def log(msg):
@@ -26,6 +27,7 @@ if len(sys.argv) < 3:
     warn("Insufficient parameters supplied.")
     print(USAGE)
     sys.exit(1)
+
 try:
     cloud = DawnbondCloud()
 except Exception as e:
@@ -92,6 +94,14 @@ elif method == "cbac":
             log("Purge successful.")
         except Exception as e:
             err(f"CBAC purge failed: {e}")
+
+    elif len(sys.argv) >= 5 and sys.argv[3] == "--diagnose":
+        code = sys.argv[4]
+        try:
+            log(f"Diagnosing cloud entry with code: {code}")
+            cloud.diagnose_entry(code)
+        except Exception as e:
+            err(f"CBAC diagnosis failed: {e}")
 
     else:
         warn("Invalid CBAC parameters.")

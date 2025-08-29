@@ -1,15 +1,17 @@
 import os
-from pathlib import Path
-import py7zr
-
 import random
+import py7zr
+import shutil
+import tempfile
+from pathlib import Path
+import subprocess
 
 def create_acs_archive(source_folder):
     filemap_path = "filemap.txt"
     filecntt_path = "filecntt.txt"
 
     # Step 1: Generate filemap and filecntt
-    with open(filemap_path, "w") as fmap, open(filecntt_path, "w") as fcntt:
+    with open(filemap_path, "w", encoding="utf-8") as fmap, open(filecntt_path, "w", encoding="utf-8") as fcntt:
         for root, dirs, files in os.walk(source_folder):
             for file in files:
                 full_path = os.path.join(root, file)
@@ -17,15 +19,21 @@ def create_acs_archive(source_folder):
 
                 fmap.write(f"{rel_path}\n")
 
-                with open(full_path, "r", errors="ignore") as f:
-                    content = f.read()
-                    fcntt.write(f"--- {rel_path} ---\n{content}\n\n")
+                try:
+                    with open(full_path, "r", encoding="utf-8", errors="ignore") as f:
+                        content = f.read()
+                except UnicodeDecodeError:
+                    content = "<BINARY DATA>"
+                fcntt.write(f"[{rel_path}]\n{content}\n\n")
 
-    # Step 2: Create .7z archive and rename to .acs with random suffix
+    # Step 2: Create .7z archive with Zstd compression
     random_id = str(random.randint(100000000, 999999999))
     output_name = f"compressed_{random_id}.acs"
 
-    with py7zr.SevenZipFile("temp.7z", 'w') as archive:
+    # Zstd filter: level can be 1–22 (higher = smaller but slower)
+    zstd_filter = [{"id": py7zr.FILTER_ZSTD, "level": 15}]
+
+    with py7zr.SevenZipFile("temp.7z", 'w', filters=zstd_filter) as archive:
         archive.write(filemap_path)
         archive.write(filecntt_path)
 
@@ -35,18 +43,12 @@ def create_acs_archive(source_folder):
     os.remove(filemap_path)
     os.remove(filecntt_path)
 
-    print(f"ACS archive created with 7z compression: {output_name}")
-    return output_name  # Return the actual filename
-
-
+    print(f"ACS archive created with Zstd compression: {output_name}")
+    return output_name
 
                     
-import shutil
-import tempfile
-from pathlib import Path
-import subprocess
 
-def restore(self, acs_path, output_path):
+def restore(acs_path, output_path):
     acs_path = Path(acs_path)
     output_dir = Path(output_path)
     output_dir.mkdir(parents=True, exist_ok=True)

@@ -3,7 +3,6 @@ from dawnbond import DawnbondCloud
 import sys
 from pathlib import Path
 
-cloud = DawnbondCloud()
 
 USAGE = """
 Usage:
@@ -27,6 +26,11 @@ if len(sys.argv) < 3:
     warn("Insufficient parameters supplied.")
     print(USAGE)
     sys.exit(1)
+try:
+    cloud = DawnbondCloud()
+except Exception as e:
+    err(f"Failed to initialize cloud client: {e}")
+    log(f"This error is caused by not running the script as venv.")
 
 method = sys.argv[2].lower()
 log(f"Selected compression protocol: {method.upper()}")

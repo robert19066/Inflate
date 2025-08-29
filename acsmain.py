@@ -1,10 +1,6 @@
 import os
 from pathlib import Path
 import py7zr
-import shutil
-import tempfile
-from pathlib import Path
-import subprocess
 
 import random
 
@@ -45,6 +41,10 @@ def create_acs_archive(source_folder):
 
 
                     
+import shutil
+import tempfile
+from pathlib import Path
+import subprocess
 
 def restore(self, acs_path, output_path):
     acs_path = Path(acs_path)

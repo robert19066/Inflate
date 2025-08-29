@@ -48,51 +48,76 @@ def create_acs_archive(source_folder):
 
                     
 
+
 def restore(acs_path, output_path):
     acs_path = Path(acs_path)
     output_dir = Path(output_path)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Step 1: Extract .acs archive (7z format)
-    with tempfile.TemporaryDirectory() as temp_dir:
-        temp_dir_path = Path(temp_dir)
-        subprocess.run(['7z', 'x', str(acs_path), f'-o{temp_dir}'], check=True)
+    try:
+        # Try system 7z first
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_dir_path = Path(temp_dir)
+            subprocess.run(
+                ['7z', 'x', str(acs_path), f'-o{temp_dir}'],
+                check=True,
+                capture_output=True,
+                text=True
+            )
 
-        filemap_path = temp_dir_path / 'filemap.txt'
-        filecntt_path = temp_dir_path / 'filecntt.txt'
+            filemap_path = temp_dir_path / 'filemap.txt'
+            filecntt_path = temp_dir_path / 'filecntt.txt'
 
-        # Step 2: Rebuild folder structure from filemap.txt
-        path_stack = [output_dir]
-        with open(filemap_path, 'r', encoding='utf-8') as f:
-            for line in f:
-                depth = len(line) - len(line.lstrip(" "))
-                name = line.strip()
+            _rebuild_from_files(filemap_path, filecntt_path, output_dir)
 
-                if not name:
-                    continue
+    except subprocess.CalledProcessError as e:
+        if "Unsupported Method" in e.stderr or "Unsupported Method" in e.stdout:
+            print("[WARN] System 7z does not support this compression method. Falling back to Python extraction...")
+            with tempfile.TemporaryDirectory() as temp_dir:
+                temp_dir_path = Path(temp_dir)
+                with py7zr.SevenZipFile(acs_path, mode='r') as archive:
+                    archive.extractall(path=temp_dir_path)
 
-                if name.endswith("/"):
-                    path_stack = path_stack[:depth // 4 + 1]
-                    new_dir = path_stack[-1] / name.strip("/")
-                    new_dir.mkdir(parents=True, exist_ok=True)
-                    path_stack.append(new_dir)
+                filemap_path = temp_dir_path / 'filemap.txt'
+                filecntt_path = temp_dir_path / 'filecntt.txt'
 
-        # Step 3: Restore file contents from filecntt.txt
-        current_file = None
-        buffer = []
-        with open(filecntt_path, 'r', encoding='utf-8') as f:
-            for raw_line in f:
-                line = raw_line.rstrip("\n")
-                if line.startswith("[") and line.endswith("]"):
-                    if current_file:
-                        with open(current_file, 'w', encoding='utf-8') as out_file:
-                            out_file.write("\n".join(buffer))
-                        buffer.clear()
-                    rel_name = line[1:-1]
-                    current_file = output_dir / rel_name
-                    current_file.parent.mkdir(parents=True, exist_ok=True)
-                else:
-                    buffer.append(line)
-            if current_file:
-                with open(current_file, 'w', encoding='utf-8') as out_file:
-                    out_file.write("\n".join(buffer))
+                _rebuild_from_files(filemap_path, filecntt_path, output_dir)
+        else:
+            raise  # Some other extraction error
+
+def _rebuild_from_files(filemap_path, filecntt_path, output_dir):
+    # Step 2: Rebuild folder structure from filemap.txt
+    path_stack = [output_dir]
+    with open(filemap_path, 'r', encoding='utf-8') as f:
+        for line in f:
+            depth = len(line) - len(line.lstrip(" "))
+            name = line.strip()
+
+            if not name:
+                continue
+
+            if name.endswith("/"):
+                path_stack = path_stack[:depth // 4 + 1]
+                new_dir = path_stack[-1] / name.strip("/")
+                new_dir.mkdir(parents=True, exist_ok=True)
+                path_stack.append(new_dir)
+
+    # Step 3: Restore file contents from filecntt.txt
+    current_file = None
+    buffer = []
+    with open(filecntt_path, 'r', encoding='utf-8') as f:
+        for raw_line in f:
+            line = raw_line.rstrip("\n")
+            if line.startswith("[") and line.endswith("]"):
+                if current_file:
+                    with open(current_file, 'w', encoding='utf-8') as out_file:
+                        out_file.write("\n".join(buffer))
+                    buffer.clear()
+                rel_name = line[1:-1]
+                current_file = output_dir / rel_name
+                current_file.parent.mkdir(parents=True, exist_ok=True)
+            else:
+                buffer.append(line)
+        if current_file:
+            with open(current_file, 'w', encoding='utf-8') as out_file:
+                out_file.write("\n".join(buffer))

@@ -1,6 +1,10 @@
 import os
 from pathlib import Path
 import py7zr
+import shutil
+import tempfile
+from pathlib import Path
+import subprocess
 
 import random
 
@@ -41,36 +45,40 @@ def create_acs_archive(source_folder):
 
 
                     
-class Decompressor:
-    def restore(self, filecnttpath, filemappath, outputpath):
-        output_dir = Path(outputpath)
-        output_dir.mkdir(parents=True, exist_ok=True)
 
+def restore(self, acs_path, output_path):
+    acs_path = Path(acs_path)
+    output_dir = Path(output_path)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Step 1: Extract .acs archive (7z format)
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_dir_path = Path(temp_dir)
+        subprocess.run(['7z', 'x', str(acs_path), f'-o{temp_dir}'], check=True)
+
+        filemap_path = temp_dir_path / 'filemap.txt'
+        filecntt_path = temp_dir_path / 'filecntt.txt'
+
+        # Step 2: Rebuild folder structure from filemap.txt
         path_stack = [output_dir]
-
-    # Step 1: Rebuild folder structure
-        with open(filemappath, 'r', encoding='utf-8') as f:
+        with open(filemap_path, 'r', encoding='utf-8') as f:
             for line in f:
                 depth = len(line) - len(line.lstrip(" "))
                 name = line.strip()
 
-                if not name:  # skip empty lines
+                if not name:
                     continue
 
-                if name.endswith("/"):  # folder
-                    # trim stack to current depth
+                if name.endswith("/"):
                     path_stack = path_stack[:depth // 4 + 1]
                     new_dir = path_stack[-1] / name.strip("/")
                     new_dir.mkdir(parents=True, exist_ok=True)
                     path_stack.append(new_dir)
-                else:  # file
-                    # Just record structure now — file contents come later
-                    pass
 
-        # Step 2: Restore file contents from .filecntt
+        # Step 3: Restore file contents from filecntt.txt
         current_file = None
         buffer = []
-        with open(filecnttpath, 'r', encoding='utf-8') as f:
+        with open(filecntt_path, 'r', encoding='utf-8') as f:
             for raw_line in f:
                 line = raw_line.rstrip("\n")
                 if line.startswith("[") and line.endswith("]"):
@@ -79,9 +87,8 @@ class Decompressor:
                             out_file.write("\n".join(buffer))
                         buffer.clear()
                     rel_name = line[1:-1]
-                    file_path = output_dir / rel_name
-                    file_path.parent.mkdir(parents=True, exist_ok=True)
-                    current_file = file_path
+                    current_file = output_dir / rel_name
+                    current_file.parent.mkdir(parents=True, exist_ok=True)
                 else:
                     buffer.append(line)
             if current_file:

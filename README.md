@@ -35,16 +35,23 @@ CBAC(or Cloud Based Abstract Compression) uses ACS to create an arhive,and then 
 - **python-dotenv**: Environment variable management
 - **System requirement**: 7z command-line tool must be installed
 
-## Development Environment Setup
+## Development Environment Setup(NEEDED FOR CBAC)
 
 ```bash
 # Activate virtual environment (REQUIRED)
+
+#macOS/Linux
 source .venv/bin/activate
+# Windows
+cd .venv/bin/activate
+./activate.ps1
 
 # Install system dependency
 sudo apt install p7zip-full  # Ubuntu/Debian
 # or
 brew install p7zip  # macOS
+# Windows
+pip install p7zip
 
 # Environment configuration
 # Copy .env.template to .env and configure:

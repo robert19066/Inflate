@@ -35,7 +35,7 @@ CBAC(or Cloud Based Abstract Compression) uses ACS to create an arhive,and then 
 - **python-dotenv**: Environment variable management
 - **System requirement**: 7z command-line tool must be installed
 
-## Development Environment Setup(NEEDED FOR CBAC)
+## Setup(Mandatory)
 
 ```bash
 # Activate virtual environment (REQUIRED)
@@ -58,6 +58,12 @@ pip install p7zip
 # SUPABASE_URL=your_supabase_url
 # SUPABASE_KEY=your_supabase_key
 ```
+Then,in your Supabase project,make a table in `public` named cbac. Then add 5 columns to it:
+- `id` of type `int8`
+- `created_at` of type `timestampx`
+- `filename` of type `text`
+- `file` of type `bytea`
+- `code` of type `numeric`
 
 ## Common Development Commands
 
